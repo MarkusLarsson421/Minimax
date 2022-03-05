@@ -1,27 +1,37 @@
-import java.util.ArrayList;
-
 class FiveInARow{
-	private final static int BOARD_SIZE = 7; //standard: 19
-	private final static int BOARD_CHAR_SIZE = BOARD_SIZE * 2 + 1;
-	private final static char PLAYER = 'X';
-	private final static char OPPONENT = 'O';
+	private static final int BOARD_SIZE = 7; //standard: 19
+	private static final int BOARD_CHAR_SIZE = BOARD_SIZE * 2 + 1;
 	
-	private final ArrayList<Piece> pieces = new ArrayList<>();
+	private static final char PLAYER = 'X';
+	private static final char OPPONENT = 'O';
+	
+	private static final byte EMPTY_TILE = 0;
+	private static final byte PLAYER_BYTE = 1;
+	private static final byte OPPONENT_BYTE = 2;
+	
 	private final InputManager input = new InputManager();
+	private final Byte[][] board = new Byte[BOARD_SIZE][BOARD_SIZE];
 	
 	private static boolean gameOnGoing = true;
 	
 	public FiveInARow(){
+		gameLoop();
+	}
+	
+	private void gameLoop(){
 		System.out.println("You start, type in the row and thereafter the column where you would like to place your piece.");
+		resetBoard();
 		
 		while(gameOnGoing){
+			checkWin();
 			drawBoard();
 			
 			//Ask user where to place their piece.
 			int row = input.getInt("What row");
 			int column = input.getInt("What column");
-			createPiece(row, column, PLAYER);
+			createPiece(row, column, PLAYER_BYTE);
 			
+			checkWin();
 			drawBoard();
 			
 			//Let the AI opponent choose where to place their piece.
@@ -29,9 +39,20 @@ class FiveInARow{
 		}
 	}
 	
-	private void createPiece(int row, int column, char player){
-		Piece p = new Piece(row, column, player);
-		pieces.add(p);
+	private void resetBoard(){
+		for(int i = 0; i < BOARD_SIZE; i++){
+			for(int j = 0; j < BOARD_SIZE; j++){
+				board[i][j] = 0;
+			}
+		}
+	}
+	
+	private void checkWin(){
+		//TODO
+	}
+	
+	private void createPiece(int row, int column, byte player){
+		board[row][column] = player;
 	}
 	
 	private void drawBoard(){
@@ -45,6 +66,30 @@ class FiveInARow{
 			board.append(div);
 		}
 		System.out.println(board);
+	}
+	
+	private String playArea(int row){
+		String displayRow = row + "";
+		displayRow = displayRow.substring(displayRow.length() - 1);
+		
+		StringBuilder output = new StringBuilder(displayRow);
+		for(int i = 0; i < BOARD_SIZE; i++){
+			output.append(tile(row, i));
+		}
+		output.append(System.lineSeparator());
+		
+		return output.toString();
+	}
+	
+	private String tile(int row, int column){
+		byte b = board[row][column];
+		String output = " ";
+		
+		if(b == 0){output += " ";}
+		else if(b == 1){output += PLAYER;}
+		else if(b == 2){output += OPPONENT;}
+		
+		return output + " |";
 	}
 	
 	private String boardTopFrame(){
@@ -67,37 +112,4 @@ class FiveInARow{
 		String middle = "---+".repeat(BOARD_SIZE - 1) + "---";
 		return start + middle + end + System.lineSeparator();
 	}
-	
-	private String playArea(int row){
-		String rowStr = row + "";
-		rowStr = rowStr.substring(rowStr.length() - 1);
-		
-		int column = 1;
-		StringBuilder str = new StringBuilder(rowStr);
-		for(int i = 1; i < BOARD_CHAR_SIZE; i++){
-			if(i % 2 == 0){
-				str.append("|");
-			}else{
-				str.append("   ");
-				column++;
-			}
-		}
-		return str + System.lineSeparator();
-	}
-}
-
-class Piece{
-	private final int xPos;
-	private final int yPos;
-	private final char player;
-	
-	public Piece(int xPos, int yPos, char player){
-		this.xPos = xPos;
-		this.yPos = yPos;
-		this.player = player;
-	}
-	
-	public int getXPos(){return xPos;} //column
-	public int getYPos(){return yPos;} //row
-	public char getPlayer(){return player;}
 }
