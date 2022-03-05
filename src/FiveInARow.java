@@ -5,11 +5,11 @@ class FiveInARow{
 	private final static int BOARD_CHAR_SIZE = BOARD_SIZE * 2 + 1;
 	private final static char PLAYER = 'X';
 	private final static char OPPONENT = 'O';
-	private final static char FRAME_CHAR = '-'; //Alternative frame character: ☐, but I had issues with it.
 	
+	private final ArrayList<Piece> pieces = new ArrayList<>();
 	private final InputManager input = new InputManager();
+	
 	private static boolean gameOnGoing = true;
-	private ArrayList<Piece> pieces = new ArrayList<>();
 	
 	public FiveInARow(){
 		System.out.println("You start, type in the row and thereafter the column where you would like to place your piece.");
@@ -24,7 +24,7 @@ class FiveInARow{
 			
 			drawBoard();
 			
-			//Let the opponent choose where to place their piece.
+			//Let the AI opponent choose where to place their piece.
 			//TODO
 		}
 	}
@@ -40,48 +40,63 @@ class FiveInARow{
 		String div = divider();
 		board.append(boardTopFrame());
 		
-		int row = 1;
 		for(int i = 0; i < BOARD_SIZE; i++){
-			if(row >= 10){row = 0;}
-			board.append(playArea(row));
+			board.append(playArea(i));
 			board.append(div);
-			row++;
 		}
 		System.out.println(board);
 	}
 	
 	private String boardTopFrame(){
 		int column = 1;
-		StringBuilder str = new StringBuilder();
-		for(int i = 1; i < BOARD_CHAR_SIZE; i++){
+		StringBuilder str = new StringBuilder("+-");
+		for(int i = 2; i < BOARD_CHAR_SIZE; i++){
 			if(column == 10){column = 0;}
 			if(i % 2 == 0){
 				str.append(column);
 				column++;
 			}
-			else{str.append(FRAME_CHAR);}
+			else{str.append("-+-");}
 		}
-		return str + (FRAME_CHAR + "") + System.lineSeparator();
+		return str + ("-+" + "") + System.lineSeparator();
 	}
 	
 	private String divider(){
-		return (FRAME_CHAR + "").repeat(BOARD_CHAR_SIZE) + System.lineSeparator();
+		String start = "+";
+		String end = "+";
+		String middle = "---+".repeat(BOARD_SIZE - 1) + "---";
+		return start + middle + end + System.lineSeparator();
 	}
 	
 	private String playArea(int row){
-		StringBuilder str = new StringBuilder(row + "");
+		String rowStr = row + "";
+		rowStr = rowStr.substring(rowStr.length() - 1);
+		
+		int column = 1;
+		StringBuilder str = new StringBuilder(rowStr);
 		for(int i = 1; i < BOARD_CHAR_SIZE; i++){
 			if(i % 2 == 0){
 				str.append("|");
 			}else{
-				str.append(" ");
+				str.append("   ");
+				column++;
 			}
 		}
 		return str + System.lineSeparator();
 	}
 }
 
-record Piece(int xPos, int yPos, char player){
+class Piece{
+	private final int xPos;
+	private final int yPos;
+	private final char player;
+	
+	public Piece(int xPos, int yPos, char player){
+		this.xPos = xPos;
+		this.yPos = yPos;
+		this.player = player;
+	}
+	
 	public int getXPos(){return xPos;} //column
 	public int getYPos(){return yPos;} //row
 	public char getPlayer(){return player;}
