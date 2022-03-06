@@ -1,3 +1,5 @@
+import java.util.Random;
+
 class FiveInARow{
 	private static final int BOARD_SIZE = 7; //standard: 19
 	private static final int BOARD_CHAR_SIZE = BOARD_SIZE * 2 + 1;
@@ -8,6 +10,7 @@ class FiveInARow{
 	private static final byte EMPTY_TILE = 0;
 	private static final byte PLAYER_BYTE = 1;
 	private static final byte OPPONENT_BYTE = 2;
+	private static final Random rng = new Random();
 	
 	private final InputManager input = new InputManager();
 	private final Byte[][] board = new Byte[BOARD_SIZE][BOARD_SIZE];
@@ -15,7 +18,15 @@ class FiveInARow{
 	private static boolean gameOnGoing = true;
 	
 	public FiveInARow(){
-		gameLoop();
+		boolean isRunning = true;
+		while(isRunning){
+			char userInput = input.getChar("Do you want to start [Y/N]");
+			switch(userInput){
+				case 'Y' -> gameLoop();
+				case 'N' -> isRunning = false;
+				default -> System.out.println("Error: Not an option!");
+			}
+		}
 	}
 	
 	private void gameLoop(){
@@ -27,32 +38,60 @@ class FiveInARow{
 			drawBoard();
 			
 			//Ask user where to place their piece.
-			int row = input.getInt("What row");
-			int column = input.getInt("What column");
-			createPiece(row, column, PLAYER_BYTE);
+			getUserPiece();
 			
 			checkWin();
-			drawBoard();
 			
 			//Let the AI opponent choose where to place their piece.
 			//TODO
+			//Super duper intelligent AI!
+			//!!WARNING!! Might take over the world.
+			createPiece(rng.nextInt(BOARD_SIZE) + 1, rng.nextInt(BOARD_SIZE) + 1, OPPONENT_BYTE);
+		}
+	}
+	
+	private void getUserPiece(){
+		boolean validPlacement = false;
+		do{
+			int row = limitRange("What row");
+			int column = limitRange("What column");
+			
+			validPlacement = createPiece(row, column, PLAYER_BYTE);
+		}while(!validPlacement);
+	}
+	
+	private int limitRange(String question){
+		int placement;
+		do{
+			placement = input.getInt(question);
+			if(placement > BOARD_SIZE || placement <= 0){System.out.println("Error: Your placement can not be outside the board!");}
+		}while(placement > BOARD_SIZE || placement <= 0);
+		return placement;
+	}
+	
+	private boolean createPiece(int row, int column, byte player){
+		row -= 1;
+		column -= 1;
+		System.out.println("Row: " + row + ", column: " + column + ", player: " + player);
+		if(board[row][column] == 0){
+			board[row][column] = player;
+			return true;
+		}else{
+			System.out.println("Error: You can't place it there, another piece is already there!");
+			return false;
 		}
 	}
 	
 	private void resetBoard(){
 		for(int i = 0; i < BOARD_SIZE; i++){
 			for(int j = 0; j < BOARD_SIZE; j++){
-				board[i][j] = 0;
+				board[i][j] = EMPTY_TILE;
 			}
 		}
 	}
 	
 	private void checkWin(){
 		//TODO
-	}
-	
-	private void createPiece(int row, int column, byte player){
-		board[row][column] = player;
 	}
 	
 	private void drawBoard(){
@@ -69,7 +108,7 @@ class FiveInARow{
 	}
 	
 	private String playArea(int row){
-		String displayRow = row + "";
+		String displayRow = row + 1 + "";
 		displayRow = displayRow.substring(displayRow.length() - 1);
 		
 		StringBuilder output = new StringBuilder(displayRow);

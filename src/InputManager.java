@@ -38,15 +38,26 @@ public class InputManager{
 	}
 	
 	public String getString(String question){
-		askUser(question);
 		String output;
 		
 		do{
+			askUser(question);
 			output = scanner.nextLine().trim();
 			if(output.isEmpty()){System.out.println("Error: Input is empty!");}
 		}while(output.isEmpty());
 		
 		return output.substring(0, 1).toUpperCase() + output.substring(1).toLowerCase();
+	}
+	
+	public char getChar(String question){
+		String output = "";
+		
+		do{
+			output = getString(question);
+			if(output.length() > 1){System.out.println("Error: Input is not one character!");}
+		}while(output.length() > 1);
+		
+		return output.charAt(0);
 	}
 	
 	//---HELPER METHODS---
