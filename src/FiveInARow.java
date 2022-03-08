@@ -11,7 +11,8 @@ class FiveInARow{
 	private static final byte PLAYER_BYTE = 1;
 	private static final byte OPPONENT_BYTE = 2;
 	private static final Random rng = new Random();
-	
+	private static final int PIECES_IN_A_ROW = 5;
+
 	private final InputManager input = new InputManager();
 	private final Byte[][] board = new Byte[BOARD_SIZE][BOARD_SIZE];
 	
@@ -22,9 +23,14 @@ class FiveInARow{
 		while(isRunning){
 			char userInput = input.getChar("Do you want to start [Y/N]");
 			switch(userInput){
-				case 'Y' -> gameLoop();
-				case 'N' -> isRunning = false;
-				default -> System.out.println("Error: Not an option!");
+				case 'Y':
+					gameLoop();
+					break;
+				case 'N':
+					isRunning = false;
+					break;
+				default:
+					System.out.println("Error: Not an option!");
 			}
 		}
 	}
@@ -34,30 +40,38 @@ class FiveInARow{
 		resetBoard();
 		
 		while(gameOnGoing){
-			checkWin();
 			drawBoard();
 			
 			//Ask user where to place their piece.
-			getUserPiece();
-			
-			checkWin();
-			
-			//Let the AI opponent choose where to place their piece.
-			//TODO
-			//Super duper intelligent AI!
-			//!!WARNING!! Might take over the world.
-			createPiece(rng.nextInt(BOARD_SIZE) + 1, rng.nextInt(BOARD_SIZE) + 1, OPPONENT_BYTE);
+			boolean playerWon = getUserPlacement();
+			if(playerWon){
+				gameOnGoing = false;
+				drawBoard();
+			}else{
+				//Let the AI opponent choose where to place their piece.
+				createPiece(rng.nextInt(BOARD_SIZE) + 1, rng.nextInt(BOARD_SIZE) + 1, OPPONENT_BYTE);
+			}
 		}
 	}
 	
-	private void getUserPiece(){
+	private boolean getUserPlacement(){
 		boolean validPlacement = false;
+		int row;
+		int column;
+
 		do{
-			int row = limitRange("What row");
-			int column = limitRange("What column");
+			row = limitRange("What row");
+			column = limitRange("What column");
 			
 			validPlacement = createPiece(row, column, PLAYER_BYTE);
 		}while(!validPlacement);
+
+		if(checkWin(PLAYER_BYTE, row, column)){
+			System.out.println("YOU'VE WON! CONGRATULATIONS! YOU'VE WON! YOU'VE WON!");
+			return true;
+		}
+
+		return false;
 	}
 	
 	private int limitRange(String question){
@@ -90,10 +104,43 @@ class FiveInARow{
 		}
 	}
 	
-	private void checkWin(){
-		//TODO
+	private boolean checkWin(byte player, int row, int column){
+		int diagonalTopLeft = countRow(player, row, column, -1, 1);
+		int diagonalTopRight = countRow(player, row, column, 1, 1);
+		int horizontal = countRow(player, row, column, 1, 0);
+		int vertical = countRow(player, row, column, 0, 1);
+
+		return max(diagonalTopLeft, diagonalTopRight, horizontal, vertical) > PIECES_IN_A_ROW;
 	}
-	
+
+	private int max(int... numbers){
+		int output = 0;
+		for(int i : numbers){
+			if(i > output){
+				output = i;
+			}
+		}
+		return output;
+	}
+
+	private int countRow(byte player, int row, int column, int dirX, int dirY) {
+		int concurrentPieces = 1;
+
+		//Could possibly be improved.
+		while(row >= 0 && row < BOARD_SIZE && column >= 0 && column < BOARD_SIZE && board[row][column] == player){
+			concurrentPieces++;
+			row += dirX;
+			column += dirY;
+		}
+		while(row >= 0 && row < BOARD_SIZE && column >= 0 && column < BOARD_SIZE && board[row][column] == player){
+			concurrentPieces++;
+			row -= dirX;
+			column -= dirY;
+		}
+
+		return concurrentPieces;
+	}
+
 	private void drawBoard(){
 		StringBuilder board = new StringBuilder();
 		
@@ -150,5 +197,27 @@ class FiveInARow{
 		String end = "+";
 		String middle = "---+".repeat(BOARD_SIZE - 1) + "---";
 		return start + middle + end + System.lineSeparator();
+	}
+
+	private class Piece{
+		private final char player;
+		private final int row;
+		private final int column;
+
+		Piece(char player, int row, int column){
+			this.player = player;
+			this.row = row;
+			this.column = column;
+		}
+
+		public char getPlayer() {
+			return player;
+		}
+		public int getRow(){
+			return row;
+		}
+		public int getColumn(){
+			return column;
+		}
 	}
 }
