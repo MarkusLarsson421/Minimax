@@ -46,11 +46,11 @@ public class InputManager{
 			if(output.isEmpty()){System.out.println("Error: Input is empty!");}
 		}while(output.isEmpty());
 		
-		return output.substring(0, 1).toUpperCase() + output.substring(1).toLowerCase();
+		return output;
 	}
 	
 	public char getChar(String question){
-		String output = "";
+		String output;
 		
 		do{
 			output = getString(question);

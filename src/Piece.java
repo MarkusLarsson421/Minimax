@@ -21,4 +21,7 @@ public class Piece{
     public boolean equals(Piece p){
         return player == p.getPlayer() && row == p.getRow() && column == p.getColumn();
     }
+    public String toString(){
+        return player + "[" + row + "][" +  column + "]";
+    }
 }
