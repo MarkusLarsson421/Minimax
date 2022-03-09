@@ -1,5 +1,6 @@
 public class Main{
 	public static void main(String[] args){
-		new FiveInARow();
+		FiveInARow five = new FiveInARow();
+		five.start();
 	}
 }
