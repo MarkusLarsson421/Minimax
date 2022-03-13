@@ -1,19 +1,25 @@
 public class Board {
-    private static final int BOARD_SIZE = 3; //standard: 19
-    private static final int BOARD_CHAR_SIZE = BOARD_SIZE * 2 + 1;
+    private final int SIZE;
+    private final int BOARD_CHAR_SIZE;
 
-    private final Piece[][] board = new Piece[BOARD_SIZE][BOARD_SIZE]; //Could be improved by using one Array.
-
+    private final Piece[][] board; //Could be improved by using one Array.
 
     public Board(){
+        this(19);
+    }
+
+    public Board(int size){
+        this.SIZE = size;
+        BOARD_CHAR_SIZE = SIZE * 2 + 1;
+        board = new Piece[SIZE][SIZE];
         resetBoard();
     }
 
     public int getSize(){
-        return BOARD_SIZE;
+        return SIZE;
     }
 
-    public void resetTile(int x, int y){
+    public void remove(int x, int y){
         board[x][y] = null;
     }
 
@@ -41,8 +47,8 @@ public class Board {
     }
 
     public void resetBoard(){
-        for(int i = 0; i < BOARD_SIZE; i++){
-            for(int j = 0; j < BOARD_SIZE; j++){
+        for(int i = 0; i < SIZE; i++){
+            for(int j = 0; j < SIZE; j++){
                 board[i][j] = null;
             }
         }
@@ -54,7 +60,7 @@ public class Board {
         String div = divider();
         board.append(boardTopFrame());
 
-        for(int i = 0; i < BOARD_SIZE; i++){
+        for(int i = 0; i < SIZE; i++){
             board.append(playArea(i));
             board.append(div);
         }
@@ -66,7 +72,7 @@ public class Board {
         displayRow = displayRow.substring(displayRow.length() - 1);
 
         StringBuilder output = new StringBuilder(displayRow);
-        for(int i = 0; i < BOARD_SIZE; i++){
+        for(int i = 0; i < SIZE; i++){
             Piece piece = board[row][i];
             output.append(" ").append(piece == null ? ' ' : piece.getPlayer()).append(" |");
         }
@@ -92,7 +98,7 @@ public class Board {
     private String divider(){
         String start = "+";
         String end = "+";
-        String middle = "---+".repeat(BOARD_SIZE - 1) + "---";
+        String middle = "---+".repeat(SIZE - 1) + "---";
         return start + middle + end + System.lineSeparator();
     }
 }

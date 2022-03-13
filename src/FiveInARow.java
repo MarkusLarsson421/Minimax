@@ -6,13 +6,11 @@ class FiveInARow{
 
 	private static final char PLAYER_X = 'x';
 	private static final char PLAYER_O = 'o';
-	private static final int MINIMAX_SEARCH_DEPTH = 3;
+	private static final int MINIMAX_SEARCH_DEPTH = 4;
 
 	private final InputManager input = new InputManager();
 	private final Random rng = new Random();
-	private final Board board = new Board();
-
-	private int pieces = 0;
+	private final Board board = new Board(3);
 
 	public void start(){
 		menu();
@@ -37,10 +35,10 @@ class FiveInARow{
 		}
 	}
 
-	private enum CONTROLLER {RANDOM, MINIMAX, HUMAN}
+	private enum CONTROLLER {RANDOM, MINIMAX, HUMAN, ALPHA_BETA}
 
 	private CONTROLLER getPlayer(char player){
-		System.out.println("Options: [R]andom AI, [M]inimax AI, [H]uman.");
+		System.out.println("Options: [R]andom AI, [M]inimax AI, [A]lpha-Beta, [H]uman.");
 		player = player == 'x' ? 'X' : 'O';
 		char userInput = input.getChar("Who is player " + player);
 		switch(userInput){
@@ -53,6 +51,9 @@ class FiveInARow{
 			case 'H':
 			case 'h':
 				return CONTROLLER.HUMAN;
+			case 'A':
+			case 'a':
+				return CONTROLLER.ALPHA_BETA;
 			default:
 				System.out.println("Error: Not an option!");
 		}
@@ -61,7 +62,6 @@ class FiveInARow{
 
 	public void gameLoop(CONTROLLER controllerX, CONTROLLER controllerO){
 		board.resetBoard();
-		pieces = 0;
 		Piece piece;
 
 		while(true){
@@ -99,70 +99,84 @@ class FiveInARow{
 		//Update the board.
 		board.drawBoard();
 
-		player = player == 'x' ? 'X' : 'O';
+		player = player == 'x' ? 'x' : 'o';
 		System.out.println("Player " + player + "'s turn.");
 
 		Piece piece = null;
 		if(controller == CONTROLLER.RANDOM){piece = randomAIController(player);}
 		else if(controller == CONTROLLER.MINIMAX){piece = minimaxAIController(player);}
-		else if(controller == CONTROLLER.HUMAN){piece= humanController(player);}
+		else if(controller == CONTROLLER.HUMAN){piece = humanController(player);}
+		else if(controller == CONTROLLER.ALPHA_BETA){piece = alphaBetaAIController(player);}
 
 		if (piece != null) {
-			System.out.println("Placed it at: [" + piece.getRow() + "][" + piece.getColumn() + "]");
+			System.out.println("Placed it at: [" + (piece.getRow() + 1) + "][" + (piece.getColumn() + 1) + "]");
 		}
 		return piece;
 	}
 
 	private Piece minimaxAIController(char player){
-		int alpha = Integer.MAX_VALUE;
-		int beta = Integer.MIN_VALUE;
+		//TODO possible improvement
+		// Make the first move random or semi-random.
+		// Using a stack of all available spots to test each position
+
+		System.out.println("Controller: Making a move!");
 
 		int bestValue = Integer.MIN_VALUE;
 		Piece bestPlacement = null;
 
+		System.out.println("Controller: Looping through all available spots!");
 		for(int i = 0; i < board.getSize(); i++){
 			for(int j = 0; j < board.getSize(); j++){
 				if(board.get(i, j) == null){
+					System.out.println("Controller: Found available spot!");
 					//Make the move, check how good it is and undo it.
 					Piece tmpPiece = new Piece(player, i, j);
 					board.set(tmpPiece);
 					int currentValue = minimax(tmpPiece, 0, false);
-					board.resetTile(i, j);
+					board.remove(i, j);
 
+					System.out.println("Controller: Undid the move!");
 					if(currentValue > bestValue){
+						System.out.println("Controller: Updated best value!");
 						bestPlacement = new Piece(player, i, j);
 						bestValue = currentValue;
 					}
 				}
 			}
 		}
-		System.out.println("Value of the most optional move: " + bestValue);
-
-		if(bestPlacement != null){board.set(bestPlacement);}
+		if(bestPlacement != null){
+			board.set(bestPlacement);
+			System.out.println("Value of the most optional move: " + bestValue +
+					", position: [" + (bestPlacement.getRow() + 1) + "][" + (bestPlacement.getColumn() + 1) + "]");
+		}
 		return bestPlacement;
 	}
 
-	//Is isMaxPlayer needed? Could I do without it?
-	private int minimax(Piece piece, int depth, boolean isMaxPlayer, int alpha, int beta){
-		if(depth == MINIMAX_SEARCH_DEPTH){return}
-
+	private int minimax(Piece piece, int depth, boolean isMaxPlayer){
+		System.out.println("Minimax: Starting evaluation!");
+		int score = evaluate(piece.getPlayer());
+		if(score == 100){return score - depth * 10;}
+		if(score == -100){return score + depth * 10;}
 		if(board.availableCapacity() == 0){return 0;}
-		int value = evaluate(piece);
-		if(value == 1){return value;}
-		if(value == -1){return value;}
+		if(depth == MINIMAX_SEARCH_DEPTH){return 0;}
+		//Repeating code, could maybe be extract into a method.
 
 		int bestValue;
+		int currentValue;
+		Piece currentPiece = null;
+		System.out.println("Minimax: Looping through all available spots! Depth: " + depth);
 		if(isMaxPlayer){
 			bestValue = Integer.MIN_VALUE;
 
 			for(int i = 0; i < board.getSize(); i++){
 				for(int j = 0; j < board.getSize(); j++){
 					if(board.get(i, j) == null){
-						//Repeating code, could maybe be extract into a method.
-						Piece tmpPiece = new Piece(piece.getPlayer(), i, j);
+						System.out.println("Minimax: Found available spot!");
+						currentPiece = new Piece(piece.getPlayer(), i, j);
 						board.set(piece);
-						bestValue = Math.max(bestValue, minimax(tmpPiece, depth + 1, !isMaxPlayer));
-						board.resetTile(i, j);
+						currentValue = minimax(currentPiece, depth + 1, false);
+						bestValue = max(bestValue, currentValue);
+						board.remove(i, j);
 					}
 				}
 			}
@@ -173,22 +187,93 @@ class FiveInARow{
 			for(int i = 0; i < board.getSize(); i++){
 				for(int j = 0; j < board.getSize(); j++){
 					if(board.get(i, j) == null){
-						//Repeating code, could maybe be extract into a method.
-						Piece tmpPiece = new Piece(piece.getPlayer() == 'x' ? 'o' : 'x', i, j);
+						System.out.println("Minimax: Found available spot!");
+						currentPiece = new Piece(piece.getPlayer() == 'x' ? 'o' : 'x', i, j);
 						board.set(piece);
-						bestValue = Math.min(bestValue, minimax(tmpPiece, depth + 1, !isMaxPlayer));
-						board.resetTile(i, j);
+						currentValue = minimax(currentPiece, depth + 1, true);
+						bestValue = max(bestValue, currentValue);
+						board.remove(i, j);
 					}
 				}
 			}
 		}
+		System.out.println("Minimax: Returning " + bestValue + "!");
 		return bestValue;
 	}
 
-	//hopefully works, has been heavily modified
-	private int evaluate(Piece piece){
-		boolean won = checkWin(piece);
-		return won ? 1 : 0;
+	private int evaluate(char player) {
+		System.out.println("Evaluator: Evaluating!");
+		for(int i = 0; i < board.getSize(); i++){
+			for(int j = 0; j < board.getSize(); j++){
+				if(board.get(i, j) != null){
+					Piece piece = board.get(i, j);
+					int diagonalTopLeft = countConcurrentPieces(piece, -1, 1);
+					int diagonalTopRight = countConcurrentPieces(piece, 1, 1);
+					int horizontal = countConcurrentPieces(piece, 1, 0);
+					int vertical = countConcurrentPieces(piece, 0, 1);
+
+					int concurrentPieces = max(diagonalTopLeft, diagonalTopRight, horizontal, vertical);
+					if(concurrentPieces >= PIECES_IN_A_ROW){
+						if(piece.getPlayer() == player){
+							System.out.println("Evaluator: Finished evaluating, returning 1!");
+							return 100;
+						}
+						else{
+							System.out.println("Evaluator: Finished evaluating, returning -1!");
+							return -100;
+						}
+					}
+				}
+			}
+		}
+		System.out.println("Evaluator: Finished evaluating, returning 0!");
+		return 0;
+	}
+
+	private Piece alphaBetaAIController(char player){
+
+	}
+
+	//TODO What do I do with piece? Is it even needed?
+	private int alphaBeta(Piece piece, int depth, boolean isMaxPlayer, int alpha, int beta){
+		if(depth == MINIMAX_SEARCH_DEPTH || board.availableCapacity() == 0){
+			return scoreEvaluation();
+		}
+
+		int score;
+
+		if(isMaxPlayer){
+			score = Integer.MIN_VALUE;
+
+			for(int i = 0; i < board.getSize(); i++){
+				for(int j = 0; j < board.getSize(); j++){
+					if(board.get(i, j) != null){
+						Piece tmpPiece = new Piece(piece.getPlayer(), i, j);
+						board.set(tmpPiece);
+						score = max(score, alphaBeta(tmpPiece, depth + 1, false, alpha, beta));
+						board.remove(i, j);
+						if(score >= beta){break;}
+						alpha = max(alpha, score);
+					}
+				}
+			}
+		}
+		else{
+			score = Integer.MAX_VALUE;
+
+			for(int i = 0; i < board.getSize(); i++){
+				for(int j = 0; j < board.getSize(); j++){
+					score = Math.min(score, alphaBeta(board.get(i, j), depth + 1, true, alpha, beta));
+					if(score <= alpha){break;}
+					beta = Math.min(beta, score);
+				}
+			}
+		}
+		return score;
+	}
+
+	private int scoreEvaluation() {
+
 	}
 
 	private Piece randomAIController(char player){
@@ -235,14 +320,12 @@ class FiveInARow{
 	private Piece createPiece(char player, int row, int column){
 		Piece piece = new Piece(player, row, column);
 		board.set(piece);
-		pieces++;
 		return piece;
 	}
 	
 	private boolean checkWin(Piece piece){
-		if(pieces <= PIECES_IN_A_ROW * 2 - 2){
-			return false;
-		}
+		//Doesn't work, don't have the time to look into why. Only exists for the small preformance boost.
+		//if(pieces <= PIECES_IN_A_ROW * 2 - 2){return false;}
 
 		//Could have an if-statement to check if the just checked one is above PIECES_IN_A_ROW and just return then.
 		//Would be a bit less readable.
@@ -274,7 +357,7 @@ class FiveInARow{
 		pieces.add(piece);
 
 		//These two while loops could be improved.
-		while(withinBoarder(deltaRow, deltaColumn) &&
+		while(withinBorder(deltaRow, deltaColumn) &&
 				board.get(deltaRow, deltaColumn) != null &&
 				board.get(deltaRow, deltaColumn).getPlayer() == player){
 			concurrentPieces++;
@@ -288,7 +371,7 @@ class FiveInARow{
 		deltaRow = piece.getRow() - dirY;
 		deltaColumn = piece.getColumn() - dirX;
 
-		while(withinBoarder(deltaRow, deltaColumn) &&
+		while(withinBorder(deltaRow, deltaColumn) &&
 				board.get(deltaRow, deltaColumn) != null &&
 				board.get(deltaRow, deltaColumn).getPlayer() == player){
 			concurrentPieces++;
@@ -301,6 +384,7 @@ class FiveInARow{
 		//Makes the winning line capitalized.
 		if(concurrentPieces >= PIECES_IN_A_ROW){
 			for(Piece p : pieces){
+				board.remove(p.getRow(), p.getColumn());
 				Piece tmpPiece = new Piece(piece.getPlayer() == 'x' ? 'X' : 'O', p.getRow(), p.getColumn());
 				board.set(tmpPiece);
 			}
@@ -309,7 +393,7 @@ class FiveInARow{
 		return concurrentPieces;
 	}
 
-	private boolean withinBoarder(int row, int column) {
+	private boolean withinBorder(int row, int column) {
 		return row >= 0 && row < board.getSize() && column >= 0 && column < board.getSize();
 	}
 

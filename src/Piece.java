@@ -1,3 +1,4 @@
+//Can become a record.
 public class Piece{
     private final char player;
     private final int row;
