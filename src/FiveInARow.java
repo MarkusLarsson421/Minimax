@@ -2,15 +2,15 @@ import java.util.ArrayList;
 import java.util.Random;
 
 class FiveInARow{
-	private static final int PIECES_IN_A_ROW = 3;
+	private static final int PIECES_IN_A_ROW = 2;
 
 	private static final char PLAYER_X = 'x';
 	private static final char PLAYER_O = 'o';
-	private static final int MINIMAX_SEARCH_DEPTH = 4;
+	private static final int MINIMAX_SEARCH_DEPTH = 3;
 
 	private final InputManager input = new InputManager();
 	private final Random rng = new Random();
-	private final Board board = new Board(3);
+	private final Board board = new Board(2);
 
 	public void start(){
 		menu();
@@ -37,6 +37,11 @@ class FiveInARow{
 
 	private enum CONTROLLER {RANDOM, MINIMAX, HUMAN, ALPHA_BETA}
 
+	/**
+	 * Asks the user what player will be played by who and returns the answer as an CONTROLLER enum.
+	 * @param player the player in question.
+	 * @return the users' answer to the question.
+	 */
 	private CONTROLLER getPlayer(char player){
 		System.out.println("Options: [R]andom AI, [M]inimax AI, [A]lpha-Beta, [H]uman.");
 		player = player == 'x' ? 'X' : 'O';
@@ -60,6 +65,11 @@ class FiveInARow{
 		return null;
 	}
 
+	/**
+	 * Main game loop for the game. Will continously loop until one of the players win.
+	 * @param controllerX the controller for player X.
+	 * @param controllerO the controller for player O.
+	 */
 	public void gameLoop(CONTROLLER controllerX, CONTROLLER controllerO){
 		board.resetBoard();
 		Piece piece;
@@ -95,6 +105,13 @@ class FiveInARow{
 		}
 	}
 
+	/**
+	 * This method will call for the correct method depending on what controller is being used; ask (or calculate),
+	 * create, place and return that Piece.
+	 * @param controller what controller is doing this action.
+	 * @param player what player the Piece will represent.
+	 * @return the Piece itself.
+	 */
 	private Piece getPiece(CONTROLLER controller, char player) {
 		//Update the board.
 		board.drawBoard();
@@ -114,8 +131,13 @@ class FiveInARow{
 		return piece;
 	}
 
+	/**
+	 * Implementation of the Minimax algorithm.
+	 * @param player what player is making the move.
+	 * @return the most optimal move.
+	 */
 	private Piece minimaxAIController(char player){
-		//TODO possible improvement
+		//TODO possible improvements
 		// Make the first move random or semi-random.
 		// Using a stack of all available spots to test each position
 
@@ -152,6 +174,13 @@ class FiveInARow{
 		return bestPlacement;
 	}
 
+	/**
+	 * Recursive call of the testing part of the Minimax algorithm.
+	 * @param piece what piece is being tested.
+	 * @param depth the depth of the calculation, how far it will go with the calculation.
+	 * @param isMaxPlayer whether or not it should attempt to maximize or minimize the chance of a loss.
+	 * @return the score of the tested move.
+	 */
 	private int minimax(Piece piece, int depth, boolean isMaxPlayer){
 		System.out.println("Minimax: Starting evaluation!");
 		int score = evaluate(piece.getPlayer());
@@ -215,11 +244,11 @@ class FiveInARow{
 					int concurrentPieces = max(diagonalTopLeft, diagonalTopRight, horizontal, vertical);
 					if(concurrentPieces >= PIECES_IN_A_ROW){
 						if(piece.getPlayer() == player){
-							System.out.println("Evaluator: Finished evaluating, returning 1!");
+							System.out.println("Evaluator: Finished evaluating, returning 100!");
 							return 100;
 						}
 						else{
-							System.out.println("Evaluator: Finished evaluating, returning -1!");
+							System.out.println("Evaluator: Finished evaluating, returning -100!");
 							return -100;
 						}
 					}
@@ -231,23 +260,51 @@ class FiveInARow{
 	}
 
 	private Piece alphaBetaAIController(char player){
+		System.out.println("Controller: Making a move!");
 
+		int bestValue = Integer.MIN_VALUE;
+		Piece bestPlacement = null;
+
+		System.out.println("Controller: Looping through all available spots!");
+		for(int i = 0; i < board.getSize(); i++){
+			for(int j = 0; j < board.getSize(); j++){
+				if(board.get(i, j) == null){
+					System.out.println("Controller: Found available spot!");
+					//Make the move, check how good it is and undo it.
+					Piece tmpPiece = new Piece(player, i, j);
+					board.set(tmpPiece);
+					int currentValue = alphaBeta(tmpPiece, 0, false, Integer.MIN_VALUE, Integer.MAX_VALUE);
+					board.remove(i, j);
+
+					System.out.println("Controller: Undid the move!");
+					if(currentValue > bestValue){
+						System.out.println("Controller: Updated best value!");
+						bestPlacement = new Piece(player, i, j);
+						bestValue = currentValue;
+					}
+				}
+			}
+		}
+		if(bestPlacement != null){
+			board.set(bestPlacement);
+			System.out.println("Value of the most optional move: " + bestValue +
+					", position: [" + (bestPlacement.getRow() + 1) + "][" + (bestPlacement.getColumn() + 1) + "]");
+		}
+		return bestPlacement;
 	}
 
-	//TODO What do I do with piece? Is it even needed?
 	private int alphaBeta(Piece piece, int depth, boolean isMaxPlayer, int alpha, int beta){
 		if(depth == MINIMAX_SEARCH_DEPTH || board.availableCapacity() == 0){
-			return scoreEvaluation();
+			return scoreEvaluation(piece.getPlayer());
 		}
 
 		int score;
-
 		if(isMaxPlayer){
 			score = Integer.MIN_VALUE;
 
 			for(int i = 0; i < board.getSize(); i++){
 				for(int j = 0; j < board.getSize(); j++){
-					if(board.get(i, j) != null){
+					if(board.get(i, j) == null){
 						Piece tmpPiece = new Piece(piece.getPlayer(), i, j);
 						board.set(tmpPiece);
 						score = max(score, alphaBeta(tmpPiece, depth + 1, false, alpha, beta));
@@ -263,17 +320,38 @@ class FiveInARow{
 
 			for(int i = 0; i < board.getSize(); i++){
 				for(int j = 0; j < board.getSize(); j++){
-					score = Math.min(score, alphaBeta(board.get(i, j), depth + 1, true, alpha, beta));
-					if(score <= alpha){break;}
-					beta = Math.min(beta, score);
+					if(board.get(i, j) == null){
+						Piece tmpPiece = new Piece(piece.getPlayer() == 'x' ? 'o' : 'x', i, j);
+						board.set(tmpPiece);
+						score = Math.min(score, alphaBeta(board.get(i, j), depth + 1, true, alpha, beta));
+						board.remove(i, j);
+						if(score <= alpha){break;}
+						beta = Math.min(beta, score);
+					}
 				}
 			}
 		}
 		return score;
 	}
 
-	private int scoreEvaluation() {
+	private int scoreEvaluation(char player) {
+		return score(player) - score(player == 'x' ? 'o' : 'x');
+	}
 
+	private int score(char player){
+		int output = 0;
+		/*for(int i = 0; i < board.getSize(); i++){
+			for(int j = 0; j < board.getSize(); j++){
+				Piece piece = board.get(i, j);
+				if(piece != null && piece.getPlayer() == player){
+					output += countConcurrentPieces(piece, -1, 1);
+					output += countConcurrentPieces(piece, 1, 1);
+					output += countConcurrentPieces(piece, 1, 0);
+					output += countConcurrentPieces(piece, 0, 1);
+				}
+			}
+		}*/
+		return output;
 	}
 
 	private Piece randomAIController(char player){
